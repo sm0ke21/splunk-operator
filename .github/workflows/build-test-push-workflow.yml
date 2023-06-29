@@ -174,7 +174,7 @@ jobs:
         id: dotenv
         uses: falti/dotenv-action@d4d12eaa0e1dd06d5bdc3d7af3bf4c8c93cb5359
       - name: Change splunk enterprise to release image on main branches
-        if: github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/workflow-changes-2'
         run:
           echo "SPLUNK_ENTERPRISE_IMAGE=${{ steps.dotenv.outputs.SPLUNK_ENTERPRISE_RELEASE_IMAGE }}" >> $GITHUB_ENV
       - name: Install Kubectl
@@ -248,7 +248,7 @@ jobs:
           kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
       - name: install k8s dashboard
         run: |
-          kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.0.5/aio/deploy/recommended.yaml 
+          kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.0.5/aio/deploy/recommended.yaml
       - name: Setup Kustomize
         run: |
           sudo snap install kustomize
@@ -287,7 +287,7 @@ jobs:
       #    reporter: jest-junit        # Format of test results
   push-latest:
     needs: smoke-tests
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/workflow-changes-2'
     runs-on: ubuntu-latest
     env:
       SPLUNK_OPERATOR_IMAGE_NAME: splunk/splunk-operator
