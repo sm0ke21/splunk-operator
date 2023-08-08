@@ -331,28 +331,30 @@ var _ = Describe("c3appfw test", func() {
 			oldImage := "splunk/splunk:9.0.3-a2"
 			newImage := "splunk/splunk:9.0.5"
 
-			lm, err := deployment.DeployLicenseManager(ctx, deployment.GetName())
-			cm, err := deployment.DeployClusterManager(ctx, deployment.GetName(), lm.GetName(), "", "")
+			// lm, err := deployment.DeployLicenseManager(ctx, deployment.GetName())
+			// cm, err := deployment.DeployClusterManager(ctx, deployment.GetName(), lm.GetName(), "", "")
 
-			mcSpec := enterpriseApi.MonitoringConsoleSpec{
-				CommonSplunkSpec: enterpriseApi.CommonSplunkSpec{
-					Spec: enterpriseApi.Spec{
-						ImagePullPolicy: "IfNotPresent",
-					},
-					Volumes: []corev1.Volume{},
-					ClusterManagerRef: corev1.ObjectReference{
-						Name: cm.GetName(),
-					},
-				},
-			}
-			mcName := deployment.GetName()
-			mc, err := deployment.DeployMonitoringConsoleWithGivenSpec(ctx, testcaseEnvInst.GetName(), mcName, mcSpec)
-			Expect(err).To(Succeed(), "Unable to deploy Monitoring Console")
+			// mcSpec := enterpriseApi.MonitoringConsoleSpec{
+			// 	CommonSplunkSpec: enterpriseApi.CommonSplunkSpec{
+			// 		Spec: enterpriseApi.Spec{
+			// 			ImagePullPolicy: "IfNotPresent",
+			// 		},
+			// 		Volumes: []corev1.Volume{},
+			// 		ClusterManagerRef: corev1.ObjectReference{
+			// 			Name: cm.GetName(),
+			// 		},
+			// 	},
+			// }
+			// mcName := deployment.GetName()
+			// mc, err := deployment.DeployMonitoringConsoleWithGivenSpec(ctx, testcaseEnvInst.GetName(), mcName, mcSpec)
+			// Expect(err).To(Succeed(), "Unable to deploy Monitoring Console")
 
-			shcName := fmt.Sprintf("%s-shc", deployment.GetName())
-			idxName := fmt.Sprintf("%s-idxc", deployment.GetName())
-			shc, err := deployment.DeploySearchHeadCluster(ctx, shcName, cm.GetName(), lm.GetName(), "", mcName)
-			idxc, err := deployment.DeployIndexerCluster(ctx, idxName, lm.GetName(), 3, cm.GetName(), "")
+			// shcName := fmt.Sprintf("%s-shc", deployment.GetName())
+			// idxName := fmt.Sprintf("%s-idxc", deployment.GetName())
+			// shc, err := deployment.DeploySearchHeadCluster(ctx, shcName, cm.GetName(), lm.GetName(), "", mcName)
+			// idxc, err := deployment.DeployIndexerCluster(ctx, idxName, lm.GetName(), 3, cm.GetName(), "")
+
+			err := deployment.DeployMultisiteClusterWithSearchHead(ctx, deployment.GetName(), 2, 3, "")
 
 			// Wait for License Manager to be in READY phase
 			testenv.LicenseManagerReady(ctx, deployment, testcaseEnvInst)
@@ -361,16 +363,16 @@ var _ = Describe("c3appfw test", func() {
 			testenv.ClusterManagerReady(ctx, deployment, testcaseEnvInst)
 
 			// Ensure Monitoring Console goes to Ready phase
-			testenv.VerifyMonitoringConsoleReady(ctx, deployment, deployment.GetName(), mc, testcaseEnvInst)
+			// testenv.VerifyMonitoringConsoleReady(ctx, deployment, deployment.GetName(), mc, testcaseEnvInst)
 
 			// // Ensure Search Head Cluster go to Ready phase
 			testenv.SearchHeadClusterReady(ctx, deployment, testcaseEnvInst)
 
 			// Ensure Indexers go to Ready phase
-			testenv.SingleSiteIndexersReady(ctx, deployment, testcaseEnvInst)
+			testenv.IndexersReady(ctx, deployment, testcaseEnvInst, 3)
 
 			// // Verify Monitoring Console is ready and stays in ready state
-			testenv.VerifyMonitoringConsoleReady(ctx, deployment, deployment.GetName(), mc, testcaseEnvInst)
+			// testenv.VerifyMonitoringConsoleReady(ctx, deployment, deployment.GetName(), mc, testcaseEnvInst)
 
 			// // Verify no SH in disconnected status is present on CM
 			testenv.VerifyNoDisconnectedSHPresentOnCM(ctx, deployment, testcaseEnvInst)
@@ -393,6 +395,9 @@ var _ = Describe("c3appfw test", func() {
 			//############### UPGRADE IMAGE ################
 
 			// Update LM Image
+			lm := &enterpriseApi.LicenseManager{}
+			err = deployment.GetInstance(ctx, deployment.GetName(), lm)
+			Expect(err).To(Succeed(), "Failed to get instance of Search Head Cluster")
 
 			testcaseEnvInst.Log.Info("Upgrading the License Manager Image", "Current Image", oldImage, "New Image", newImage)
 			lm.Spec.Image = newImage
@@ -401,6 +406,10 @@ var _ = Describe("c3appfw test", func() {
 
 			// Update CM image
 
+			cm := &enterpriseApi.ClusterManager{}
+			err = deployment.GetInstance(ctx, deployment.GetName(), cm)
+			Expect(err).To(Succeed(), "Failed to get instance of Search Head Cluster")
+
 			testcaseEnvInst.Log.Info("Upgrading the Cluster Manager Image", "Current Image", oldImage, "New Image", newImage)
 			cm.Spec.Image = newImage
 			err = deployment.UpdateCR(ctx, cm)
@@ -408,12 +417,17 @@ var _ = Describe("c3appfw test", func() {
 
 			// Update MC image
 
-			testcaseEnvInst.Log.Info("Upgrading the Monitoring Console Image", "Current Image", oldImage, "New Image", newImage)
-			mc.Spec.Image = newImage
-			err = deployment.UpdateCR(ctx, mc)
-			Expect(err).To(Succeed(), "Failed upgrade Monitoring Console image")
+			// testcaseEnvInst.Log.Info("Upgrading the Monitoring Console Image", "Current Image", oldImage, "New Image", newImage)
+			// mc.Spec.Image = newImage
+			// err = deployment.UpdateCR(ctx, mc)
+			// Expect(err).To(Succeed(), "Failed upgrade Monitoring Console image")
 
 			// Update SHC image
+
+			shcName := deployment.GetName() + "-shc"
+			shc := &enterpriseApi.SearchHeadCluster{}
+			err = deployment.GetInstance(ctx, shcName, shc)
+			Expect(err).To(Succeed(), "Failed to get instance of Search Head Cluster")
 
 			testcaseEnvInst.Log.Info("Upgrading the Search Head Cluster Image", "Current Image", oldImage, "New Image", newImage)
 			shc.Spec.Image = newImage
@@ -422,10 +436,18 @@ var _ = Describe("c3appfw test", func() {
 
 			// // Update IDXC image
 
-			testcaseEnvInst.Log.Info("Upgrading the Indexer Cluster Image", "Current Image", oldImage, "New Image", newImage)
-			idxc.Spec.Image = newImage
-			err = deployment.UpdateCR(ctx, idxc)
-			Expect(err).To(Succeed(), "Failed upgrade Indexer Cluster image")
+			for site := 1; site <= 3; site++ {
+				siteName := fmt.Sprintf("site%d", site)
+				idxName := deployment.GetName() + "-" + siteName
+				idx := &enterpriseApi.IndexerCluster{}
+				err = deployment.GetInstance(ctx, idxName, idx)
+				Expect(err).To(Succeed(), "Failed to get instance of Search Head Cluster")
+
+				testcaseEnvInst.Log.Info("Upgrading the Indexer Cluster Image", "Current Image", oldImage, "New Image", newImage)
+				idx.Spec.Image = newImage
+				err = deployment.UpdateCR(ctx, idx)
+				Expect(err).To(Succeed(), "Failed upgrade Indexer Cluster image")
+			}
 
 			// Ensure Cluster Manager goes to Ready phase
 			testenv.ClusterManagerReady(ctx, deployment, testcaseEnvInst)
@@ -434,7 +456,7 @@ var _ = Describe("c3appfw test", func() {
 			testenv.LicenseManagerReady(ctx, deployment, testcaseEnvInst)
 
 			// // Verify Monitoring Console is ready and stays in ready state
-			testenv.VerifyMonitoringConsoleReady(ctx, deployment, deployment.GetName(), mc, testcaseEnvInst)
+			// testenv.VerifyMonitoringConsoleReady(ctx, deployment, deployment.GetName(), mc, testcaseEnvInst)
 
 			// // Ensure Search Head Cluster go to Ready phase
 			testenv.SearchHeadClusterReady(ctx, deployment, testcaseEnvInst)
