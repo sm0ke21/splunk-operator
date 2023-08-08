@@ -1128,40 +1128,14 @@ func (mgr *indexerClusterPodManager) isIndexerClusterReadyForUpgrade(ctx context
 		mgr.c = c
 	}
 
-	cm := mgr.getClusterManagerClient(ctx)
-	clusterInfo, err := cm.GetClusterInfo(false)
-	if err != nil {
-		return false, fmt.Errorf("could not get cluster info from cluster manager")
-	}
-	if clusterInfo.MultiSite == "true" {
-		opts := []rclient.ListOption{
-			rclient.InNamespace(cr.GetNamespace()),
-		}
-		indexerList, err := getIndexerClusterList(ctx, c, cr, opts)
-		if err != nil {
-			return false, err
-		}
-		sortedList, err := getIndexerClusterSortedSiteList(ctx, c, cr.Spec.ClusterManagerRef, indexerList)
+	// cm := mgr.getClusterManagerClient(ctx)
+	// clusterInfo, err := cm.GetClusterInfo(false)
+	// if err != nil {
+	// 	return false, fmt.Errorf("could not get cluster info from cluster manager")
+	// }
+	// if clusterInfo.MultiSite == "true" {
 
-		preIdx := enterpriseApi.IndexerCluster{}
-
-		for i, v := range sortedList.Items {
-			if &v == cr {
-				if i > 0 {
-					preIdx = sortedList.Items[i-1]
-				}
-				break
-
-			}
-		}
-		if len(preIdx.Name) != 0 {
-			image, _ := getCurrentImage(ctx, c, &preIdx, SplunkIndexer)
-			if preIdx.Status.Phase != enterpriseApi.PhaseReady || image != cr.Spec.Image {
-				return false, nil
-			}
-		}
-
-	}
+	// }
 
 	// check if a search head cluster exists with the same ClusterManager instance attached
 	searchHeadClusterInstance := enterpriseApi.SearchHeadCluster{}
@@ -1208,6 +1182,33 @@ func (mgr *indexerClusterPodManager) isIndexerClusterReadyForUpgrade(ctx context
 	// further reconcile operations on IDX until SHC is ready
 	if (cr.Spec.Image != idxImage) && (searchHeadClusterInstance.Status.Phase != enterpriseApi.PhaseReady || shcImage != cr.Spec.Image) {
 		return false, nil
+	}
+
+	opts = []rclient.ListOption{
+		rclient.InNamespace(cr.GetNamespace()),
+	}
+	indexerList, err := getIndexerClusterList(ctx, c, cr, opts)
+	if err != nil {
+		return false, err
+	}
+	sortedList, err := getIndexerClusterSortedSiteList(ctx, c, cr.Spec.ClusterManagerRef, indexerList)
+
+	preIdx := enterpriseApi.IndexerCluster{}
+
+	for i, v := range sortedList.Items {
+		if &v == cr {
+			if i > 0 {
+				preIdx = sortedList.Items[i-1]
+			}
+			break
+
+		}
+	}
+	if len(preIdx.Name) != 0 {
+		image, _ := getCurrentImage(ctx, c, &preIdx, SplunkIndexer)
+		if preIdx.Status.Phase != enterpriseApi.PhaseReady || image != cr.Spec.Image {
+			return false, nil
+		}
 	}
 	return true, nil
 }
