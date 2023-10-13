@@ -37,6 +37,12 @@ jobs:
         login-server: ${{ secrets.AZURE_ACR_LOGIN_SERVER }}
         username: ${{ secrets.AZURE_CREDENTIALS_CLIENT_ID }}
         password: ${{ secrets.AZURE_CREDENTIALS_CLIENT_SECRET }}
+    - name: AZ AKS Create
+      uses: azure/CLI@v1
+      with:
+        azcliversion: ${{ steps.dotenv.outputs.AZ_CLI_VERSION }}
+        inlineScript: |
+          az acr login -n ${{ secrets.AZURE_ACR_DOCKER_USERNAME }} -p  "${{ secrets.AZURE_ACR_DOCKER_PASSWORD }}" -u ${{ secrets.AZURE_ACR_DOCKER_USERNAME }}
     - name: Make Splunk Operator Image
       run: |
         make docker-build IMG=${{ secrets.AZURE_ACR_LOGIN_SERVER }}/${{ env.SPLUNK_OPERATOR_IMAGE_NAME }}:$GITHUB_SHA
@@ -174,9 +180,14 @@ jobs:
           login-server: ${{ secrets.AZURE_ACR_LOGIN_SERVER }}
           username: ${{ secrets.AZURE_CREDENTIALS_CLIENT_ID }}
           password: ${{ secrets.AZURE_CREDENTIALS_CLIENT_SECRET }}
+      - name: AZ AKS Create
+        uses: azure/CLI@v1
+        with:
+          azcliversion: ${{ steps.dotenv.outputs.AZ_CLI_VERSION }}
+          inlineScript: |
+            az acr login -n ${{ secrets.AZURE_ACR_DOCKER_USERNAME }} -p  "${{ secrets.AZURE_ACR_DOCKER_PASSWORD }}" -u ${{ secrets.AZURE_ACR_DOCKER_USERNAME }}
       - name: Pull Splunk Operator Image Locally
         run: |
-          az acr login -n ${{ secrets.AZURE_ACR_DOCKER_USERNAME }} -p  "${{ secrets.AZURE_ACR_DOCKER_PASSWORD }}" -u ${{ secrets.AZURE_ACR_DOCKER_USERNAME }}
           docker pull ${{ secrets.AZURE_ACR_LOGIN_SERVER }}/${{ env.SPLUNK_OPERATOR_IMAGE_NAME }}:$GITHUB_SHA
           docker tag ${{ secrets.AZURE_ACR_LOGIN_SERVER }}/${{ env.SPLUNK_OPERATOR_IMAGE_NAME }}:$GITHUB_SHA ${{ env.SPLUNK_OPERATOR_IMAGE_NAME }}:$GITHUB_SHA
           echo "SPLUNK_OPERATOR_IMAGE=${{ env.SPLUNK_OPERATOR_IMAGE_NAME }}:$GITHUB_SHA" >> $GITHUB_ENV
