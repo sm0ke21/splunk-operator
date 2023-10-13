@@ -5,6 +5,7 @@ on:
       - develop
       - main
       - azure-test
+      - test_int_1012
 jobs:
   build-operator-image:
     runs-on: ubuntu-latest
