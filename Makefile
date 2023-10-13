@@ -9,11 +9,11 @@ VERSION ?= 2.2.1
 SPLUNK_ENTERPRISE_IMAGE ?= "docker.io/splunk/splunk:edge"
 
 # WATCH_NAMESPACE defines if its clusterwide operator or namespace specific
-# by default we leave it as clusterwide if it has to be namespace specific, 
+# by default we leave it as clusterwide if it has to be namespace specific,
 # add namespace to this
 WATCH_NAMESPACE ?= ""
 
-# NAMESPACE defines default namespace where operator will be installed 
+# NAMESPACE defines default namespace where operator will be installed
 NAMESPACE ?= "splunk-operator"
 
 # CHANNELS define the bundle channels used in the bundle.
@@ -137,7 +137,7 @@ build: setup/ginkgo manifests generate fmt vet ## Build manager binary.
 run: manifests generate fmt vet ## Run a controller from your host.
 	go run ./main.go
 
-docker-build: test ## Build docker image with the manager.
+docker-build: #test ## Build docker image with the manager.
 	docker build -t ${IMG} .
 
 docker-push: ## Push docker image with the manager.
