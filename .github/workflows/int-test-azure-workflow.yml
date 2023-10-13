@@ -4,6 +4,7 @@ on:
     branches:
       - develop
       - main
+      - azure-test
 jobs:
   build-operator-image:
     runs-on: ubuntu-latest
@@ -175,6 +176,7 @@ jobs:
           password: ${{ secrets.AZURE_CREDENTIALS_CLIENT_SECRET }}
       - name: Pull Splunk Operator Image Locally
         run: |
+          az acr login -n ${{ secrets.AZURE_ACR_DOCKER_USERNAME }} -p  "${{ secrets.AZURE_ACR_DOCKER_PASSWORD }}" -u ${{ secrets.AZURE_ACR_DOCKER_USERNAME }}
           docker pull ${{ secrets.AZURE_ACR_LOGIN_SERVER }}/${{ env.SPLUNK_OPERATOR_IMAGE_NAME }}:$GITHUB_SHA
           docker tag ${{ secrets.AZURE_ACR_LOGIN_SERVER }}/${{ env.SPLUNK_OPERATOR_IMAGE_NAME }}:$GITHUB_SHA ${{ env.SPLUNK_OPERATOR_IMAGE_NAME }}:$GITHUB_SHA
           echo "SPLUNK_OPERATOR_IMAGE=${{ env.SPLUNK_OPERATOR_IMAGE_NAME }}:$GITHUB_SHA" >> $GITHUB_ENV
