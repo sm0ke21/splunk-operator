@@ -4,6 +4,7 @@ on:
     branches:
       - develop
       - main
+      - test_azure_pipeline
 jobs:
   build-operator-image:
     runs-on: ubuntu-latest
