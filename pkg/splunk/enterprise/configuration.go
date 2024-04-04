@@ -1012,6 +1012,7 @@ func updateSplunkPodTemplateWithConfig(ctx context.Context, client splcommon.Con
 	}
 
 	privileged := false
+	readOnlyFileSystem := true
 	// update each container in pod
 	for idx := range podTemplateSpec.Spec.Containers {
 		podTemplateSpec.Spec.Containers[idx].Resources = spec.Resources
@@ -1020,6 +1021,7 @@ func updateSplunkPodTemplateWithConfig(ctx context.Context, client splcommon.Con
 		podTemplateSpec.Spec.Containers[idx].StartupProbe = startupProbe
 		podTemplateSpec.Spec.Containers[idx].Env = env
 		podTemplateSpec.Spec.Containers[idx].SecurityContext = &corev1.SecurityContext{
+			ReadOnlyRootFilesystem:   &readOnlyFileSystem,
 			RunAsUser:                &runAsUser,
 			RunAsNonRoot:             &runAsNonRoot,
 			AllowPrivilegeEscalation: &[]bool{false}[0],
@@ -1425,7 +1427,7 @@ func validateSplunkAppSources(appFramework *enterpriseApi.AppFrameworkSpec, loca
 	duplicateAppSourceStorageChecker[enterpriseApi.ScopeLocal] = make(map[string]bool)
 	duplicateAppSourceStorageChecker[enterpriseApi.ScopePremiumApps] = make(map[string]bool)
 
-        // CSPL-2574 - Assign just in case invalid scope is passed through!
+	// CSPL-2574 - Assign just in case invalid scope is passed through!
 	duplicateAppSourceStorageChecker[enterpriseApi.ScopeCluster] = make(map[string]bool)
 	duplicateAppSourceStorageChecker[enterpriseApi.ScopeClusterWithPreConfig] = make(map[string]bool)
 
