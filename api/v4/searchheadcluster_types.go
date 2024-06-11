@@ -39,6 +39,9 @@ const (
 type SearchHeadClusterSpec struct {
 	CommonSplunkSpec `json:",inline"`
 
+	// auxilary cluster manager refs this connect to
+	AuxilaryClusterManagerRefs []corev1.ObjectReference `json:"auxilaryClusterManagerRefs,omitempty"`
+	
 	// Number of search head pods; a search head cluster will be created if > 1
 	Replicas int32 `json:"replicas"`
 
