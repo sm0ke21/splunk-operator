@@ -32,6 +32,7 @@ import (
 	splutil "github.com/splunk/splunk-operator/pkg/splunk/util"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	"gopkg.in/ini.v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/remotecommand"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -243,6 +244,37 @@ func ApplySearchHeadCluster(ctx context.Context, client splcommon.ControllerClie
 	return result, nil
 }
 
+func configureAuxilaryClusterManagers(ctx context.Context, auxCms []corev1.ObjectReference, iniCfg *ini.File) error {
+	for _, auxCm := range auxCms {
+		cmPass4SymmKey, err := getCMPass4SymKeySecret(ctx, auxCm)
+		if err != nil {
+			return err
+		}
+		clusterManagerUrl , err := getClusterManagerUrl(ctx, auxCm)	
+		if err != nil {
+			return err
+		}
+
+		iniCfg.Section("auxiliary_cluster_masters").Key("url").SetValue(clusterManagerUrl)
+		iniCfg.Section("auxiliary_cluster_masters").Key("pass4SymmKey").SetValue(cmPass4SymmKey)
+	}
+
+	return nil
+}
+
+func getCMPass4SymKeySecret(ctx context.Context, auxCm corev1.ObjectReference,) (string, error) {
+	name := splcommon.GetServiceFQDN(auxCm.Namespace, auxCm.Name)
+	return name, nil
+}
+
+func getClusterManagerUrl(ctx context.Context, auxCm corev1.ObjectReference,) (string, error) {
+	clusterManagerURL := GetSplunkServiceName(SplunkClusterMaster, auxCm.Name, false)
+	if auxCm.Namespace != "" {
+		clusterManagerURL = splcommon.GetServiceFQDN(auxCm.Namespace, clusterManagerURL)
+	}
+	return clusterManagerURL, nil
+}
+
 // searchHeadClusterPodManager is used to manage the pods within a search head cluster
 type searchHeadClusterPodManager struct {
 	c               splcommon.ControllerClient
@@ -424,6 +456,7 @@ func ApplyShcSecret(ctx context.Context, mgr *searchHeadClusterPodManager, repli
 
 	return nil
 }
+
 
 // Update for searchHeadClusterPodManager handles all updates for a statefulset of search heads
 func (mgr *searchHeadClusterPodManager) Update(ctx context.Context, c splcommon.ControllerClient, statefulSet *appsv1.StatefulSet, desiredReplicas int32) (enterpriseApi.Phase, error) {
